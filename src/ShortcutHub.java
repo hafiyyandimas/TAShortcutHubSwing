@@ -2,37 +2,48 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
+import java.util.HashMap;
 
 public class ShortcutHub extends JFrame {
 
     private JPanel gridPanel;
     private JScrollPane scrollPane;
+    private HashMap<String, String> shortcuts;
 
     public ShortcutHub() {
+        // Window setup
         setTitle("Shortcut Hub");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(800, 600);
         setLocationRelativeTo(null);
-        setLayout(new BorderLayout());
-        setDarkTheme();
 
+        // Layout setup
+        setLayout(new BorderLayout());
+
+        // Initialize shortcuts
+        shortcuts = new HashMap<>();
+
+        // Create a grid panel to display the shortcuts
         gridPanel = new JPanel(new GridLayout(0, 3, 10, 10));
         add(gridPanel, BorderLayout.CENTER);
-        JButton addButton = new JButton("Add Shortcut");
+
+        // Add "Add Shortcut" button
+        JButton addButton = new JButton("+ Add Shortcut");
         addButton.addActionListener(e -> addShortcut());
-        gridPanel.add(addButton);
+        add(addButton, BorderLayout.SOUTH);
+
+        // Load shortcuts (hardcoded for now)
+        loadShortcutsToUI();
     }
 
-    private void setDarkTheme() {
-        try {
-            UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
-            UIManager.put("control", new Color(48, 48, 48));
-            UIManager.put("nimbusBase", new Color(18, 30, 49));
-            UIManager.put("nimbusLightBackground", new Color(48, 48, 48));
-            UIManager.put("text", new Color(230, 230, 230));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    private void loadShortcutsToUI() {
+        gridPanel.removeAll();
+        shortcuts.forEach((name, path) -> {
+            JButton button = new JButton(name);
+            gridPanel.add(button);
+        });
+        gridPanel.revalidate();
+        gridPanel.repaint();
     }
 
     private void addShortcut() {
@@ -40,11 +51,14 @@ public class ShortcutHub extends JFrame {
         int result = fileChooser.showOpenDialog(this);
         if (result == JFileChooser.APPROVE_OPTION) {
             File selectedFile = fileChooser.getSelectedFile();
-            JOptionPane.showMessageDialog(this, "Added: " + selectedFile.getAbsolutePath());
+            shortcuts.put(selectedFile.getName(), selectedFile.getAbsolutePath());
+            loadShortcutsToUI();
         }
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new ShortcutHub().setVisible(true));
+        SwingUtilities.invokeLater(() -> {
+            new ShortcutHub().setVisible(true);
+        });
     }
 }
