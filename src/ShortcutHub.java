@@ -9,7 +9,10 @@ public class ShortcutHub extends JFrame {
 
     private JPanel gridPanel;
     private JScrollPane scrollPane;
-    private HashMap<String, String> shortcuts; // name -> file path mapping
+    private HashMap<String, String> shortcuts;
+
+    private static final int CELL_WIDTH = 150;
+    private static final int CELL_HEIGHT = 150;
 
     public ShortcutHub() {
         setTitle("Shortcut Hub");
@@ -19,27 +22,26 @@ public class ShortcutHub extends JFrame {
         setLayout(new BorderLayout());
 
         setLookAndFeel();
+        setResizable(false);
 
         shortcuts = loadShortcuts();
 
-        gridPanel = new JPanel();
-        gridPanel.setLayout(new GridLayout(0, 3, 10, 10)); // 2 columns, 10px spacing
+        gridPanel = new JPanel(new GridLayout(0, 3, 10, 10));
         loadShortcutsToUI();
 
         scrollPane = new JScrollPane(gridPanel);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER); // Disable horizontal scrollbar
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 
         add(scrollPane, BorderLayout.CENTER);
     }
-
 
     private void loadShortcutsToUI() {
         gridPanel.removeAll();
         shortcuts.forEach((name, path) -> {
             gridPanel.add(createShortcutPanel(name, path));
         });
-        gridPanel.add(createAddShortcutButton()); // Add the "+" button at the end of the grid
+        gridPanel.add(createAddShortcutButton());
         gridPanel.revalidate();
         gridPanel.repaint();
     }
@@ -48,6 +50,7 @@ public class ShortcutHub extends JFrame {
         JPanel panel = new JPanel();
         panel.setLayout(new BorderLayout());
         panel.setBackground(new Color(48, 48, 48));
+        panel.setPreferredSize(new Dimension(CELL_WIDTH, CELL_HEIGHT));
 
         JLabel iconLabel = new JLabel();
         File file = new File(path);
@@ -88,7 +91,7 @@ public class ShortcutHub extends JFrame {
         JButton addButton = new JButton("+");
         addButton.setFont(new Font("Arial", Font.BOLD, 20));
         addButton.setHorizontalAlignment(SwingConstants.CENTER);
-        addButton.addActionListener(e -> addShortcut()); // This will still open the file chooser to add a shortcut
+        addButton.addActionListener(e -> addShortcut()); 
 
         panel.add(addButton, BorderLayout.CENTER);
         return panel;
