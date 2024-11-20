@@ -1,44 +1,140 @@
 import javax.swing.*;
+import javax.swing.filechooser.FileSystemView;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.File;
+import java.io.*;
 import java.util.HashMap;
 
 public class ShortcutHub extends JFrame {
 
     private JPanel gridPanel;
     private JScrollPane scrollPane;
-    private HashMap<String, String> shortcuts; // Store shortcut name and path
+    private HashMap<String, String> shortcuts; // name -> file path mapping
 
     public ShortcutHub() {
-
         setTitle("Shortcut Hub");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(800, 600);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
+        setLookAndFeel();
 
-        setDarkTheme();
+        shortcuts = loadShortcuts();
 
-
-        shortcuts = new HashMap<>();
-
-
-        gridPanel = new JPanel(new GridLayout(0, 3, 10, 10));
-        add(gridPanel, BorderLayout.CENTER);
-
-
-        JButton addButton = new JButton("Add Shortcut");
-        addButton.addActionListener(e -> addShortcut());
-        add(addButton, BorderLayout.SOUTH);
-
-
+        gridPanel = new JPanel();
+        gridPanel.setLayout(new GridLayout(0, 3, 10, 10)); // 2 columns, 10px spacing
         loadShortcutsToUI();
+
+        scrollPane = new JScrollPane(gridPanel);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER); // Disable horizontal scrollbar
+
+        add(scrollPane, BorderLayout.CENTER);
     }
 
 
-    private void setDarkTheme() {
+    private void loadShortcutsToUI() {
+        gridPanel.removeAll();
+        shortcuts.forEach((name, path) -> {
+            gridPanel.add(createShortcutPanel(name, path));
+        });
+        gridPanel.add(createAddShortcutButton()); // Add the "+" button at the end of the grid
+        gridPanel.revalidate();
+        gridPanel.repaint();
+    }
+
+    private JPanel createShortcutPanel(String name, String path) {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BorderLayout());
+        panel.setBackground(new Color(48, 48, 48));
+
+        JLabel iconLabel = new JLabel();
+        File file = new File(path);
+        Icon icon = FileSystemView.getFileSystemView().getSystemIcon(file);
+        iconLabel.setIcon(icon);
+        iconLabel.setHorizontalAlignment(SwingConstants.CENTER);
+
+        JLabel nameLabel = new JLabel(name, SwingConstants.CENTER);
+        nameLabel.setForeground(Color.WHITE);
+
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+        buttonPanel.setBackground(new Color(48, 48, 48));
+        JButton runButton = new JButton("Run");
+        JButton deleteButton = new JButton("Delete");
+
+        runButton.addActionListener(e -> runShortcut(path));
+        deleteButton.addActionListener(e -> {
+            shortcuts.remove(name);
+            saveShortcuts();
+            loadShortcutsToUI();
+        });
+
+        buttonPanel.add(runButton);
+        buttonPanel.add(deleteButton);
+
+        panel.add(iconLabel, BorderLayout.CENTER);
+        panel.add(nameLabel, BorderLayout.NORTH);
+        panel.add(buttonPanel, BorderLayout.SOUTH);
+
+        return panel;
+    }
+
+    private JPanel createAddShortcutButton() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BorderLayout());
+        panel.setBackground(new Color(48, 48, 48));
+
+        JButton addButton = new JButton("+");
+        addButton.setFont(new Font("Arial", Font.BOLD, 20));
+        addButton.setHorizontalAlignment(SwingConstants.CENTER);
+        addButton.addActionListener(e -> addShortcut()); // This will still open the file chooser to add a shortcut
+
+        panel.add(addButton, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private void addShortcut() {
+        JFileChooser fileChooser = new JFileChooser();
+        int result = fileChooser.showOpenDialog(this);
+
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File file = fileChooser.getSelectedFile();
+            String fileName = file.getName();
+            String filePath = file.getAbsolutePath();
+
+            shortcuts.put(fileName, filePath);
+            saveShortcuts();
+            loadShortcutsToUI();
+        }
+    }
+
+    private void runShortcut(String path) {
+        try {
+            Desktop.getDesktop().open(new File(path));
+            JOptionPane.showMessageDialog(this, "Running: " + path);
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this, "Failed to run the file.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void saveShortcuts() {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("shortcuts.dat"))) {
+            oos.writeObject(shortcuts);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private HashMap<String, String> loadShortcuts() {
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream("shortcuts.dat"))) {
+            return (HashMap<String, String>) ois.readObject();
+        } catch (IOException | ClassNotFoundException e) {
+            return new HashMap<>();
+        }
+    }
+
+    private void setLookAndFeel() {
         try {
             UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
             UIManager.put("control", new Color(48, 48, 48));
@@ -50,47 +146,9 @@ public class ShortcutHub extends JFrame {
         }
     }
 
-
-    private void loadShortcutsToUI() {
-        gridPanel.removeAll();  // Remove all existing components in the grid
-
-
-        shortcuts.forEach((name, path) -> {
-
-            JButton button = new JButton(name);
-            button.setToolTipText(path);
-            button.addActionListener(e -> openShortcut(path));
-            gridPanel.add(button);
-        });
-
-        gridPanel.revalidate();
-        gridPanel.repaint();
-    }
-
-
-    private void addShortcut() {
-        JFileChooser fileChooser = new JFileChooser();
-        int result = fileChooser.showOpenDialog(this);
-        if (result == JFileChooser.APPROVE_OPTION) {
-            File selectedFile = fileChooser.getSelectedFile();
-            String filePath = selectedFile.getAbsolutePath();
-            shortcuts.put(selectedFile.getName(), filePath);
-            loadShortcutsToUI();
-            JOptionPane.showMessageDialog(this, "Added: " + selectedFile.getAbsolutePath());
-        }
-    }
-
-
-    private void openShortcut(String path) {
-        try {
-            Desktop.getDesktop().open(new File(path));  // Open the file associated with the shortcut
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Failed to open the file: " + path, "Error", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
     public static void main(String[] args) {
-
-        SwingUtilities.invokeLater(() -> new ShortcutHub().setVisible(true));
+        SwingUtilities.invokeLater(() -> {
+            new ShortcutHub().setVisible(true);
+        });
     }
 }
