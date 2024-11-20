@@ -16,8 +16,8 @@ public class ShortcutHub extends JFrame {
     private static final int CELL_WIDTH = 150;
     private static final int CELL_HEIGHT = 150;
 
-    public ShortcutHub() {
-        setTitle("Shortcut Hub");
+    public ShortcutHub() {   //constructor buat bikin inisialisasi kode gui
+        setTitle("Shortcut Hub"); //setter buat konfigurasi GUI
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(800, 600);
         setLocationRelativeTo(null);
@@ -28,14 +28,30 @@ public class ShortcutHub extends JFrame {
 
         shortcuts = loadShortcuts();
 
-        gridPanel = new JPanel(new GridLayout(0, 3, 10, 10)); // 3 columns, 10px spacing
+        gridPanel = new JPanel(new GridLayout(0, 3, 10, 10));
         loadShortcutsToUI();
 
         scrollPane = new JScrollPane(gridPanel);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 
+        applyModernScrollBars();
+
         add(scrollPane, BorderLayout.CENTER);
+
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); //THANK U INDIAN MAN
+        } catch (Exception e) {
+            // TODO: handle exception}
+        }
+    }
+
+    private void applyModernScrollBars() {
+        JScrollBar vertical = scrollPane.getVerticalScrollBar();
+        JScrollBar horizontal = scrollPane.getHorizontalScrollBar();
+
+        vertical.setUI(new ModernScrollBarUI());
+        horizontal.setUI(new ModernScrollBarUI());
     }
 
     private void loadShortcutsToUI() {
@@ -65,22 +81,27 @@ public class ShortcutHub extends JFrame {
         iconLabel.setHorizontalAlignment(SwingConstants.CENTER);
         iconLabel.setVerticalAlignment(SwingConstants.CENTER);
 
+
         iconLabel.setPreferredSize(new Dimension(80, 80));
 
-        iconLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));  // Change cursor to hand when hovering over the icon
+
+        iconLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         iconLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
+
                 JFileChooser fileChooser = new JFileChooser();
                 fileChooser.setFileFilter(new FileNameExtensionFilter("Image Files", "png", "jpg", "jpeg", "gif"));
                 int result = fileChooser.showOpenDialog(panel);
 
                 if (result == JFileChooser.APPROVE_OPTION) {
                     File selectedFile = fileChooser.getSelectedFile();
+                    // Resize and update the icon
                     ImageIcon newIcon = new ImageIcon(selectedFile.getAbsolutePath());
                     Image resizedNewIcon = newIcon.getImage();
                     BufferedImage finalResizedImage = resizeImage(resizedNewIcon, 80, 80);
                     iconLabel.setIcon(new ImageIcon(finalResizedImage));
+
 
                     shortcuts.put(name, selectedFile.getAbsolutePath());
                     saveShortcuts();
@@ -105,6 +126,7 @@ public class ShortcutHub extends JFrame {
 
         buttonPanel.add(runButton);
         buttonPanel.add(deleteButton);
+
 
         panel.add(iconLabel, BorderLayout.CENTER);
         panel.add(nameLabel, BorderLayout.NORTH);
@@ -136,6 +158,7 @@ public class ShortcutHub extends JFrame {
         return panel;
     }
 
+
     private void addShortcut() {
         JFileChooser fileChooser = new JFileChooser();
         int result = fileChooser.showOpenDialog(this);
@@ -151,6 +174,7 @@ public class ShortcutHub extends JFrame {
         }
     }
 
+
     private void runShortcut(String path) {
         try {
             Desktop.getDesktop().open(new File(path));
@@ -160,6 +184,7 @@ public class ShortcutHub extends JFrame {
         }
     }
 
+
     private void saveShortcuts() {
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("shortcuts.dat"))) {
             oos.writeObject(shortcuts);
@@ -168,6 +193,7 @@ public class ShortcutHub extends JFrame {
         }
     }
 
+
     private HashMap<String, String> loadShortcuts() {
         try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream("shortcuts.dat"))) {
             return (HashMap<String, String>) ois.readObject();
@@ -175,6 +201,7 @@ public class ShortcutHub extends JFrame {
             return new HashMap<>();
         }
     }
+
 
     private void setLookAndFeel() {
         try {
@@ -188,9 +215,11 @@ public class ShortcutHub extends JFrame {
         }
     }
 
+
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             new ShortcutHub().setVisible(true);
         });
     }
 }
+
