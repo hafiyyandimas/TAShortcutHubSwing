@@ -1,7 +1,9 @@
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.filechooser.FileSystemView;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.HashMap;
 
@@ -26,7 +28,7 @@ public class ShortcutHub extends JFrame {
 
         shortcuts = loadShortcuts();
 
-        gridPanel = new JPanel(new GridLayout(0, 3, 10, 10));
+        gridPanel = new JPanel(new GridLayout(0, 3, 10, 10)); // 3 columns, 10px spacing
         loadShortcutsToUI();
 
         scrollPane = new JScrollPane(gridPanel);
@@ -55,8 +57,36 @@ public class ShortcutHub extends JFrame {
         JLabel iconLabel = new JLabel();
         File file = new File(path);
         Icon icon = FileSystemView.getFileSystemView().getSystemIcon(file);
-        iconLabel.setIcon(icon);
+
+        Image image = ((ImageIcon) icon).getImage();
+        BufferedImage resizedImage = resizeImage(image, 80, 80);
+        iconLabel.setIcon(new ImageIcon(resizedImage));
+
         iconLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        iconLabel.setVerticalAlignment(SwingConstants.CENTER);
+
+        iconLabel.setPreferredSize(new Dimension(80, 80));
+
+        iconLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));  // Change cursor to hand when hovering over the icon
+        iconLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                JFileChooser fileChooser = new JFileChooser();
+                fileChooser.setFileFilter(new FileNameExtensionFilter("Image Files", "png", "jpg", "jpeg", "gif"));
+                int result = fileChooser.showOpenDialog(panel);
+
+                if (result == JFileChooser.APPROVE_OPTION) {
+                    File selectedFile = fileChooser.getSelectedFile();
+                    ImageIcon newIcon = new ImageIcon(selectedFile.getAbsolutePath());
+                    Image resizedNewIcon = newIcon.getImage();
+                    BufferedImage finalResizedImage = resizeImage(resizedNewIcon, 80, 80);
+                    iconLabel.setIcon(new ImageIcon(finalResizedImage));
+
+                    shortcuts.put(name, selectedFile.getAbsolutePath());
+                    saveShortcuts();
+                }
+            }
+        });
 
         JLabel nameLabel = new JLabel(name, SwingConstants.CENTER);
         nameLabel.setForeground(Color.WHITE);
@@ -83,6 +113,15 @@ public class ShortcutHub extends JFrame {
         return panel;
     }
 
+    private BufferedImage resizeImage(Image originalImage, int width, int height) {
+        BufferedImage resizedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = resizedImage.createGraphics();
+        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g2d.drawImage(originalImage, 0, 0, width, height, null);
+        g2d.dispose();
+        return resizedImage;
+    }
+
     private JPanel createAddShortcutButton() {
         JPanel panel = new JPanel();
         panel.setLayout(new BorderLayout());
@@ -91,7 +130,7 @@ public class ShortcutHub extends JFrame {
         JButton addButton = new JButton("+");
         addButton.setFont(new Font("Arial", Font.BOLD, 20));
         addButton.setHorizontalAlignment(SwingConstants.CENTER);
-        addButton.addActionListener(e -> addShortcut()); 
+        addButton.addActionListener(e -> addShortcut());
 
         panel.add(addButton, BorderLayout.CENTER);
         return panel;
