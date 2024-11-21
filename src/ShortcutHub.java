@@ -16,8 +16,8 @@ public class ShortcutHub extends JFrame {
     private static final int CELL_WIDTH = 150;
     private static final int CELL_HEIGHT = 150;
 
-    public ShortcutHub() {   //constructor buat bikin inisialisasi kode gui
-        setTitle("Shortcut Hub"); //setter buat konfigurasi GUI
+    public ShortcutHub() {
+        setTitle("Shortcut Hub");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(800, 600);
         setLocationRelativeTo(null);
@@ -30,7 +30,6 @@ public class ShortcutHub extends JFrame {
 
         gridPanel = new JPanel(new GridLayout(0, 3, 10, 10));
         loadShortcutsToUI();
-
         scrollPane = new JScrollPane(gridPanel);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
@@ -39,10 +38,28 @@ public class ShortcutHub extends JFrame {
 
         add(scrollPane, BorderLayout.CENTER);
 
+        JTextField searchField = new JTextField();
+        searchField.setPreferredSize(new Dimension(200, 30));
+        searchField.addActionListener(e -> searchShortcut(searchField.getText()));
+        JPanel topPanel = new JPanel(new BorderLayout());
+        topPanel.setBackground(new Color(48, 48, 48));
+        topPanel.add(new JLabel("Search: "), BorderLayout.WEST);
+        topPanel.add(searchField, BorderLayout.CENTER);
+
+        add(topPanel, BorderLayout.NORTH);
+
+        JButton clearButton = new JButton("Delete All");
+        clearButton.addActionListener(e -> {
+            int confirm = JOptionPane.showConfirmDialog(this, "Are you sure you want to clear all shortcuts?");
+            if (confirm == JOptionPane.YES_OPTION) {
+                clearAllShortcuts();
+            }
+        });
+        add(clearButton, BorderLayout.SOUTH);
+
         try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); //THANK U INDIAN MAN
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Exception e) {
-            // TODO: handle exception}
         }
     }
 
@@ -56,9 +73,29 @@ public class ShortcutHub extends JFrame {
 
     private void loadShortcutsToUI() {
         gridPanel.removeAll();
-        shortcuts.forEach((name, path) -> {
+        for (String name : shortcuts.keySet()) {
+            String path = shortcuts.get(name);
             gridPanel.add(createShortcutPanel(name, path));
-        });
+        }
+        gridPanel.add(createAddShortcutButton());
+        gridPanel.revalidate();
+        gridPanel.repaint();
+    }
+
+    private void clearAllShortcuts() {
+        shortcuts.clear();
+        saveShortcuts();
+        loadShortcutsToUI();
+    }
+
+    private void searchShortcut(String query) {
+        gridPanel.removeAll();
+        for (String name : shortcuts.keySet()) {
+            if (name.toLowerCase().contains(query.toLowerCase())) {
+                String path = shortcuts.get(name);
+                gridPanel.add(createShortcutPanel(name, path));
+            }
+        }
         gridPanel.add(createAddShortcutButton());
         gridPanel.revalidate();
         gridPanel.repaint();
@@ -81,9 +118,7 @@ public class ShortcutHub extends JFrame {
         iconLabel.setHorizontalAlignment(SwingConstants.CENTER);
         iconLabel.setVerticalAlignment(SwingConstants.CENTER);
 
-
         iconLabel.setPreferredSize(new Dimension(80, 80));
-
 
         iconLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         iconLabel.addMouseListener(new MouseAdapter() {
@@ -96,12 +131,11 @@ public class ShortcutHub extends JFrame {
 
                 if (result == JFileChooser.APPROVE_OPTION) {
                     File selectedFile = fileChooser.getSelectedFile();
-                    // Resize and update the icon
+
                     ImageIcon newIcon = new ImageIcon(selectedFile.getAbsolutePath());
                     Image resizedNewIcon = newIcon.getImage();
                     BufferedImage finalResizedImage = resizeImage(resizedNewIcon, 80, 80);
                     iconLabel.setIcon(new ImageIcon(finalResizedImage));
-
 
                     shortcuts.put(name, selectedFile.getAbsolutePath());
                     saveShortcuts();
@@ -119,14 +153,18 @@ public class ShortcutHub extends JFrame {
 
         runButton.addActionListener(e -> runShortcut(path));
         deleteButton.addActionListener(e -> {
-            shortcuts.remove(name);
+            for (String key : shortcuts.keySet()) {
+                if (key.equals(name)) {
+                    shortcuts.remove(key);
+                    break;
+                }
+            }
             saveShortcuts();
             loadShortcutsToUI();
         });
 
         buttonPanel.add(runButton);
         buttonPanel.add(deleteButton);
-
 
         panel.add(iconLabel, BorderLayout.CENTER);
         panel.add(nameLabel, BorderLayout.NORTH);
@@ -150,14 +188,13 @@ public class ShortcutHub extends JFrame {
         panel.setBackground(new Color(48, 48, 48));
 
         JButton addButton = new JButton("+");
-        addButton.setFont(new Font("Arial", Font.BOLD, 20));
+        addButton.setFont(new Font("Arial", Font.BOLD, 30));
         addButton.setHorizontalAlignment(SwingConstants.CENTER);
         addButton.addActionListener(e -> addShortcut());
 
         panel.add(addButton, BorderLayout.CENTER);
         return panel;
     }
-
 
     private void addShortcut() {
         JFileChooser fileChooser = new JFileChooser();
@@ -174,16 +211,12 @@ public class ShortcutHub extends JFrame {
         }
     }
 
-
     private void runShortcut(String path) {
         try {
             Desktop.getDesktop().open(new File(path));
-            JOptionPane.showMessageDialog(this, "Running: " + path);
         } catch (IOException e) {
-            JOptionPane.showMessageDialog(this, "Failed to run the file.", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
-
 
     private void saveShortcuts() {
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("shortcuts.dat"))) {
@@ -193,7 +226,6 @@ public class ShortcutHub extends JFrame {
         }
     }
 
-
     private HashMap<String, String> loadShortcuts() {
         try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream("shortcuts.dat"))) {
             return (HashMap<String, String>) ois.readObject();
@@ -201,7 +233,6 @@ public class ShortcutHub extends JFrame {
             return new HashMap<>();
         }
     }
-
 
     private void setLookAndFeel() {
         try {
@@ -215,11 +246,9 @@ public class ShortcutHub extends JFrame {
         }
     }
 
-
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             new ShortcutHub().setVisible(true);
         });
     }
 }
-
